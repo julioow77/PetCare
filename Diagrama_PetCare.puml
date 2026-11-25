@@ -1,0 +1,188 @@
+@startuml
+!pragma layout smetana
+hide circle
+hide empty members
+skinparam shadowing false
+skinparam nodesep 48
+skinparam ranksep 56
+skinparam padding 6
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam backgroundColor #FFFFFF
+skinparam packageBackgroundColor #FFFFFF
+skinparam defaultFontName SansSerif
+skinparam classBackgroundColor #F7FAF8
+skinparam classBorderColor #3A5D50
+skinparam arrowColor #52655D
+skinparam packageBorderColor #8A9B92
+skinparam legendBackgroundColor #FFFFFF
+
+title Diagrama de classes do PetCare
+
+package "br.com.petshop.modelo [9]" as modelo {
+  class Pessoa {
+    .. [1.1] Encapsulamento ..
+    -nome : String
+    +getNome() : String
+    .. [6.1] Ano fixado no cadastro ..
+    -anoCadastro : int {readOnly}
+    +descreverCadastro() : String
+  }
+  class Cliente {
+    .. [3] Construtor do cliente ..
+    +Cliente(nome : String, telefone : String)
+    +adicionarPontos(pontos : int)
+    .. [7.3] Subtipagem (sobrescrita) ..
+    +descreverCadastro() : String
+  }
+  class Veterinario {
+    .. [3] Construtor do veterinário ..
+    +Veterinario(nome : String, crmv : String)
+    +atender() : String
+  }
+  class VeterinarioCirurgiao {
+    +avaliarProcedimento(procedimento) : String
+  }
+
+  abstract class Animal <<abstrata>> {
+    -porte : Porte
+    +vacinaEmDia() : boolean
+    .. [10] Tempo definido pela espécie ..
+    {abstract} +estimarTempoBanho() : int
+  }
+  class Cachorro
+  class Gato
+  enum Porte <<enumeração>> {
+    PEQUENO
+    MEDIO
+    GRANDE
+  }
+
+  abstract class ServicoPet <<abstrata>> {
+    .. [10] Execução definida por serviço ..
+    {abstract} +executar() : String
+  }
+  class BanhoETosa
+  class VacinaAtrasadaException <<exceção>>
+  class Exame {
+    .. [7.4] Laudo e medida tipados ..
+    -laudoTextual : Prontuario<String>
+    -medida : Prontuario<Float>
+  }
+  class Prontuario<T> {
+    -laudo : T
+    +setLaudo(laudo : T)
+  }
+  class ProntuarioSimples
+
+  interface Agendavel <<interface>> {
+    +agendar(dataHora : LocalDateTime)
+  }
+  interface Pagavel <<interface>> {
+    +calcularTotal() : float
+    +registrarPagamento()
+    +emitirRecibo() : String
+  }
+  enum StatusConsulta <<enumeração>> {
+    CRIADA
+    AGENDADA
+    REALIZADA
+    CANCELADA
+  }
+  class Consulta {
+    .. [1.2] Dados da visita ..
+    -descricao : String
+    -duracaoMinutos : int
+    -valorConsulta : float
+    .. [2.1] Varargs com for ..
+    +adicionarSintomas(sintomas : String...)
+    .. [7.1] Sobrecarga ..
+    +calcularTotal() : float
+    +calcularTotal(desconto : float) : float
+  }
+  class VendaProduto {
+    .. [7.2] Reais inteiros viram pontos ..
+    -valorPago : float
+    -pontosGerados : int
+  }
+  class TabelaPrecos {
+    .. [1.5] Taxa de urgência ..
+    {static} -TAXA_URGENCIA : float = 35.5 {readOnly}
+    .. [2.2] Cálculo do adicional ..
+    {static} +adicionalUrgencia(urgente : boolean) : float
+  }
+
+  Pessoa <|-- Cliente : [7.3]
+  Pessoa <|-- Veterinario
+  Veterinario <|-- VeterinarioCirurgiao
+  Animal <|-- Cachorro
+  Animal <|-- Gato
+  ServicoPet <|-- BanhoETosa
+  ServicoPet <|-- Exame
+
+  Agendavel <|.. Consulta : [8]
+  Pagavel <|.. Consulta : [8]
+  Agendavel <|.. Exame : [8]
+  Pagavel <|.. VendaProduto : [8]
+
+  Animal --> "1" Porte : [1.3] porte
+  BanhoETosa --> "1" Animal : animal
+  Exame --> "1" Animal : animal
+  BanhoETosa ..> VacinaAtrasadaException : [11] lança
+  Exame *-- "2" Prontuario : laudo e medida
+  Consulta *-- "1" ProntuarioSimples : [4] prontuário
+  Consulta *-- "1" VeterinarioCirurgiao : [6.2] medico.atender()
+  Consulta --> "1" Animal : paciente
+  Consulta --> "1" Cliente : responsável
+  Consulta --> "1" StatusConsulta : situação
+  Consulta ..> TabelaPrecos : calcula o total
+  VendaProduto o-- "0..1" Cliente : [5] cliente
+  VendaProduto ..> TabelaPrecos : valida o preço
+}
+
+package "br.com.petshop.sistema [9]" as sistema {
+  class PetShopMain {
+    .. [9] Entrada do pacote sistema ..
+    {static} +main(args : String[])
+    .. Atendimento profissional ..
+    {static} -mostrarProfissional(profissional : Veterinario)
+    .. [12] Caixas de nome e telefone ..
+    {static} ~cadastrarClientePorDialogo(...) : Cliente
+  }
+  class PetShopTela
+  class PetShopServico {
+    .. [1.4] Consultas da sessão ..
+    -listaConsultas : ArrayList<Consulta>
+    .. [13] Gravar e recuperar as fichas ..
+    +salvarHistorico() : int
+    +lerHistorico() : List<String>
+  }
+
+  PetShopMain ..> PetShopTela : abre a janela
+  PetShopTela ..> PetShopMain : pede cadastro por diálogo
+  PetShopMain ..> PetShopServico : cria o serviço
+  PetShopTela --> "1" PetShopServico : sistema
+}
+
+sistema.PetShopMain ..> modelo.Veterinario : tipo da referência
+sistema.PetShopServico --> "0..*" modelo.Cliente : clientes
+sistema.PetShopServico --> "0..*" modelo.Animal : animais
+sistema.PetShopServico --> "0..*" modelo.Consulta : consultas
+sistema.PetShopTela ..> modelo.VacinaAtrasadaException : [11] trata a exceção
+
+' O índice usa as linhas dos comentários do projeto entregue.
+legend bottom
+|= Item |= Critério |= Classe e linha |= Item |= Critério |= Classe e linha |
+| 1.1 | Encapsulamento | Pessoa · 6 | 6.2 | Acoplamento dinâmico | Consulta · 101 |
+| 1.2 | String, int e float | Consulta · 12 | 7.1 | Sobrecarga | Consulta · 121 |
+| 1.3 | Enum como atributo | Animal · 10 | 7.2 | Coerção explícita | VendaProduto · 94 |
+| 1.4 | ArrayList como atributo | PetShopServico · 22 | 7.3 | Subtipagem | Cliente · 30 (Pessoa · 20) |
+| 1.5 | Constante primitiva | TabelaPrecos · 7 | 7.4 | Polimorfismo paramétrico | Exame · 12 |
+| 2.1 | Varargs com for | Consulta · 75 | 8 | Interfaces | Consulta · 7 / Exame · 5 / VendaProduto · 5 |
+| 2.2 | Método estático | TabelaPrecos · 14 | 9 | Dois pacotes | PetShopMain · 2 (modelo / sistema) |
+| 3 | Construtores concretos | Cliente · 8 / Veterinario · 7 | 10 | Classes abstratas | Animal · 61 / ServicoPet · 18 |
+| 4 | Composição | Consulta · 54 | 11 | Exceção própria | BanhoETosa · 23 / VacinaAtrasadaException · 3 |
+| 5 | Agregação | VendaProduto · 27 | 12 | Entrada por diálogo | PetShopMain · 195 |
+| 6.1 | Atributo final na superclasse | Pessoa · 9 | 13 | Gravação e leitura de arquivo | PetShopMain · 108 / PetShopServico · 68 |
+endlegend
+@enduml

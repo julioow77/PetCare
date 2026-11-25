@@ -1,0 +1,11 @@
+# Build and distribution artifacts
+build/
+dist/
+
+# NetBeans user-specific configuration (contains local paths)
+nbproject/private/
+
+# OS / editor metadata
+.DS_Store
+Thumbs.db
+*.log
